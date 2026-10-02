@@ -75,6 +75,15 @@ export default async function IssuePage({
 
         <p className="lead">{issue.description}</p>
 
+        {Number.isFinite(Number(issue.latitude)) && Number.isFinite(Number(issue.longitude)) && (
+          <div className="masterLocation">
+            <span className="eyebrow">Master issue location</span>
+            <strong>
+              {Number(issue.latitude).toFixed(5)}, {Number(issue.longitude).toFixed(5)}
+            </strong>
+          </div>
+        )}
+
         <div className="dashboardGrid issueStats">
           <div><strong>{issue.report_count}</strong><div className="muted">Supporting reports</div></div>
           <div><strong>{issue.priority_score}</strong><div className="muted">Priority score</div></div>
@@ -99,11 +108,16 @@ export default async function IssuePage({
                   />
                 )}
                 <strong>{complaint.description}</strong>
-                <p className="muted evidenceMeta">
-                  {complaint.similarity_score
-                    ? "AI match: " + Math.round(complaint.similarity_score * 100) + "%"
-                    : "Original report"}
-                </p>
+                <div className="evidenceMetaRow">
+                  <p className="muted evidenceMeta">
+                    {complaint.similarity_score
+                      ? "AI match: " + Math.round(complaint.similarity_score * 100) + "%"
+                      : "Original report"}
+                  </p>
+                  <span className="coordinateChip">
+                    {Number(complaint.latitude).toFixed(5)}, {Number(complaint.longitude).toFixed(5)}
+                  </span>
+                </div>
               </article>
             ))
           )}
