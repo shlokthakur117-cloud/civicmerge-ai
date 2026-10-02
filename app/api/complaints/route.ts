@@ -24,6 +24,7 @@ export async function POST(request: Request) {
     }
 
     const supabase = getSupabaseAdmin();
+
     if (!supabase) {
       return NextResponse.json(
         { message: "Supabase environment variables are not configured." },
@@ -35,7 +36,10 @@ export async function POST(request: Request) {
 
     const { data: candidates, error: matchError } = await supabase.rpc("match_issues", {
       query_embedding: embedding,
-      match_count: 5,
+      query_latitude: body.latitude,
+      query_longitude: body.longitude,
+      match_count: 10,
+      max_distance_m: 300,
     });
 
     if (matchError) throw matchError;
@@ -54,7 +58,11 @@ export async function POST(request: Request) {
           body.longitude,
         );
 
-        return { ...candidate, ...hybrid };
+        return {
+          ...candidate,
+          ...hybrid,
+          distanceMeters: Math.round(Number(candidate.distance_m)),
+        };
       })
       .sort((a: any, b: any) => b.score - a.score);
 
@@ -94,7 +102,7 @@ export async function POST(request: Request) {
     if (best && best.score >= 0.7) {
       return NextResponse.json({
         action: "possible_duplicate",
-        message: "A possible duplicate was found. Review before creating a separate issue.",
+        message: "A nearby possible duplicate was found. Review before creating a separate issue.",
         score: best.score,
         distanceMeters: best.distanceMeters,
         issueId: best.id,
@@ -131,11 +139,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       action: "created",
-      message: "No strong duplicate found. A new master issue was created.",
+      message: "No nearby strong duplicate found. A new master issue was created.",
       issueId: newIssue.id,
     });
   } catch (error) {
     console.error(error);
+
     return NextResponse.json(
       { message: error instanceof Error ? error.message : "Unexpected server error." },
       { status: 500 },
