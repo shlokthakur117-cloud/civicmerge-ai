@@ -44,6 +44,8 @@ export default function LeafletIssueMap({ issues }: { issues: MapIssue[] }) {
               Priority: {issue.priority_score}
               <br />
               Status: {issue.status.replaceAll("_", " ")}
+              <br />
+              Coordinates: {issue.latitude.toFixed(5)}, {issue.longitude.toFixed(5)}
             </Popup>
           </CircleMarker>
         );
