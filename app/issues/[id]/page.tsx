@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { priorityBand } from "@/lib/priority";
+
+function label(value: string) {
+  return value.replaceAll("_", " ").replace(/w/g, (letter) => letter.toUpperCase());
+}
 
 export default async function IssuePage({
   params,
@@ -41,10 +46,13 @@ export default async function IssuePage({
       description: "This issue could not be loaded.",
       category: "unknown",
       status: "open",
+      department: "unassigned",
       report_count: 0,
       priority_score: 0,
     };
   }
+
+  const band = priorityBand(Number(issue.priority_score) || 0);
 
   return (
     <main>
@@ -59,7 +67,10 @@ export default async function IssuePage({
             <div className="eyebrow">Master Issue #{String(issue.id).slice(0, 8)}</div>
             <h2>{issue.title}</h2>
           </div>
-          <span className={"statusBadge " + issue.status}>{issue.status}</span>
+          <div className="issueBadgeStack">
+            <span className={"statusBadge " + issue.status}>{label(issue.status)}</span>
+            <span className={"priorityBadge " + band}>{band} priority</span>
+          </div>
         </div>
 
         <p className="lead">{issue.description}</p>
@@ -67,8 +78,8 @@ export default async function IssuePage({
         <div className="dashboardGrid issueStats">
           <div><strong>{issue.report_count}</strong><div className="muted">Supporting reports</div></div>
           <div><strong>{issue.priority_score}</strong><div className="muted">Priority score</div></div>
-          <div><strong>{issue.category}</strong><div className="muted">Category</div></div>
-          <div><strong>{issue.status}</strong><div className="muted">Status</div></div>
+          <div><strong>{label(issue.department ?? "unassigned")}</strong><div className="muted">Department</div></div>
+          <div><strong>{label(issue.status)}</strong><div className="muted">Status</div></div>
         </div>
       </section>
 
@@ -102,12 +113,12 @@ export default async function IssuePage({
           <h2>Status history</h2>
           <div className="card">
             {updates.length === 0 ? (
-              <p className="muted">No status changes yet.</p>
+              <p className="muted">No workflow changes yet.</p>
             ) : (
               <div className="timeline">
                 {updates.map((update) => (
                   <div key={update.id} className="timelineItem">
-                    <strong>{update.status}</strong>
+                    <strong>{label(update.status)}</strong>
                     <span className="muted">{update.message}</span>
                   </div>
                 ))}

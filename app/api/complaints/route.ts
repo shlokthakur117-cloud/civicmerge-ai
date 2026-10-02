@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createEmbedding } from "@/lib/embeddings";
-import { calculateDuplicateScore } from "@/lib/duplicate-score";
+import { calculateDuplicateScore, distanceMeters } from "@/lib/duplicate-score";
+import { calculatePriority } from "@/lib/priority";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 type ComplaintInput = {
@@ -8,6 +9,17 @@ type ComplaintInput = {
   description: string;
   latitude: number;
   longitude: number;
+};
+
+type IssueForMerge = {
+  id: string;
+  title: string;
+  category: string;
+  latitude: number;
+  longitude: number;
+  report_count: number;
+  status: string;
+  source?: string;
 };
 
 async function uploadComplaintImage(file: File | null, supabase: any) {
@@ -50,6 +62,113 @@ async function uploadComplaintImage(file: File | null, supabase: any) {
   return data.publicUrl;
 }
 
+async function recentReportCount(supabase: any, issueId: string) {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const { count } = await supabase
+    .from("complaints")
+    .select("id", { count: "exact", head: true })
+    .eq("issue_id", issueId)
+    .gte("created_at", since);
+
+  return count ?? 1;
+}
+
+async function mergeComplaint(
+  supabase: any,
+  issue: IssueForMerge,
+  body: ComplaintInput,
+  image: File | null,
+  similarityScore: number | null,
+) {
+  const imageUrl = await uploadComplaintImage(image, supabase);
+
+  const { error: complaintError } = await supabase.from("complaints").insert({
+    issue_id: issue.id,
+    description: body.description,
+    latitude: body.latitude,
+    longitude: body.longitude,
+    image_url: imageUrl,
+    similarity_score: similarityScore,
+  });
+
+  if (complaintError) throw complaintError;
+
+  const newReportCount = (issue.report_count ?? 1) + 1;
+  const recentReports = await recentReportCount(supabase, issue.id);
+  const newPriority = calculatePriority({
+    reportCount: newReportCount,
+    category: issue.category,
+    recentReports,
+  });
+
+  const { error: updateError } = await supabase
+    .from("issues")
+    .update({
+      report_count: newReportCount,
+      priority_score: newPriority,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", issue.id);
+
+  if (updateError) throw updateError;
+
+  return {
+    issueId: issue.id,
+    priorityScore: newPriority,
+  };
+}
+
+async function createMasterIssue(
+  supabase: any,
+  body: ComplaintInput,
+  image: File | null,
+) {
+  const embedding = await createEmbedding(body.description);
+  const imageUrl = await uploadComplaintImage(image, supabase);
+  const priorityScore = calculatePriority({
+    reportCount: 1,
+    category: body.category,
+    recentReports: 1,
+  });
+
+  const { data: newIssue, error: issueError } = await supabase
+    .from("issues")
+    .insert({
+      title: body.description.slice(0, 80),
+      description: body.description,
+      category: body.category,
+      latitude: body.latitude,
+      longitude: body.longitude,
+      embedding,
+      status: "open",
+      department: "unassigned",
+      source: "live",
+      priority_score: priorityScore,
+      report_count: 1,
+    })
+    .select("id")
+    .single();
+
+  if (issueError) throw issueError;
+
+  const { error: complaintError } = await supabase.from("complaints").insert({
+    issue_id: newIssue.id,
+    description: body.description,
+    latitude: body.latitude,
+    longitude: body.longitude,
+    image_url: imageUrl,
+    similarity_score: null,
+  });
+
+  if (complaintError) throw complaintError;
+
+  return {
+    issueId: newIssue.id,
+    priorityScore,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const form = await request.formData();
@@ -63,6 +182,15 @@ export async function POST(request: Request) {
 
     const imageValue = form.get("image");
     const image = imageValue instanceof File ? imageValue : null;
+    const resolutionAction = String(form.get("resolutionAction") ?? "");
+    const matchedIssueId = String(form.get("matchedIssueId") ?? "");
+    const resolutionScoreValue = Number(form.get("resolutionScore"));
+    const resolutionScore =
+      Number.isFinite(resolutionScoreValue) &&
+      resolutionScoreValue >= 0 &&
+      resolutionScoreValue <= 1
+        ? resolutionScoreValue
+        : null;
 
     if (
       !body.category ||
@@ -84,6 +212,64 @@ export async function POST(request: Request) {
         { message: "Supabase environment variables are not configured." },
         { status: 500 },
       );
+    }
+
+    if (resolutionAction === "create_separate") {
+      const created = await createMasterIssue(supabase, body, image);
+
+      return NextResponse.json({
+        action: "created",
+        message: "A separate master issue was created after your review.",
+        issueId: created.issueId,
+        priorityScore: created.priorityScore,
+      });
+    }
+
+    if (resolutionAction === "merge") {
+      if (!matchedIssueId) {
+        return NextResponse.json({ message: "Matched issue is missing." }, { status: 400 });
+      }
+
+      const { data: issue, error } = await supabase
+        .from("issues")
+        .select("id,title,category,latitude,longitude,report_count,status,source")
+        .eq("id", matchedIssueId)
+        .single();
+
+      if (error || !issue) {
+        return NextResponse.json({ message: "Matched issue could not be found." }, { status: 404 });
+      }
+
+      const distance = distanceMeters(
+        body.latitude,
+        body.longitude,
+        Number(issue.latitude),
+        Number(issue.longitude),
+      );
+
+      if (distance > 300 || issue.status === "resolved" || issue.source !== "live") {
+        return NextResponse.json(
+          { message: "That master issue is no longer eligible for merging." },
+          { status: 409 },
+        );
+      }
+
+      const merged = await mergeComplaint(
+        supabase,
+        issue,
+        body,
+        image,
+        resolutionScore,
+      );
+
+      return NextResponse.json({
+        action: "merged",
+        message: "Your reviewed report was merged into the selected master issue.",
+        score: resolutionScore ?? undefined,
+        distanceMeters: Math.round(distance),
+        issueId: merged.issueId,
+        priorityScore: merged.priorityScore,
+      });
     }
 
     const embedding = await createEmbedding(body.description);
@@ -123,84 +309,44 @@ export async function POST(request: Request) {
     const best = scored[0];
 
     if (best && best.score >= 0.85) {
-      const imageUrl = await uploadComplaintImage(image, supabase);
-
-      const { error: complaintError } = await supabase.from("complaints").insert({
-        issue_id: best.id,
-        description: body.description,
-        latitude: body.latitude,
-        longitude: body.longitude,
-        image_url: imageUrl,
-        similarity_score: best.score,
-      });
-
-      if (complaintError) throw complaintError;
-
-      const { error: updateError } = await supabase
-        .from("issues")
-        .update({
-          report_count: (best.report_count ?? 1) + 1,
-          priority_score: Math.min(100, (best.priority_score ?? 40) + 5),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", best.id);
-
-      if (updateError) throw updateError;
+      const merged = await mergeComplaint(
+        supabase,
+        best,
+        body,
+        image,
+        best.score,
+      );
 
       return NextResponse.json({
         action: "merged",
         message: "Existing issue detected. Your report was added as supporting evidence.",
         score: best.score,
         distanceMeters: best.distanceMeters,
-        issueId: best.id,
+        issueId: merged.issueId,
+        priorityScore: merged.priorityScore,
       });
     }
 
     if (best && best.score >= 0.7) {
       return NextResponse.json({
         action: "possible_duplicate",
-        message: "A nearby possible duplicate was found. Review it before creating a separate issue.",
+        message: "A nearby possible duplicate was found. Choose whether to merge or create a separate issue.",
         score: best.score,
         distanceMeters: best.distanceMeters,
         issueId: best.id,
+        matchedTitle: best.title,
+        matchedCategory: best.category,
+        matchedStatus: "open",
       });
     }
 
-    const imageUrl = await uploadComplaintImage(image, supabase);
-
-    const { data: newIssue, error: issueError } = await supabase
-      .from("issues")
-      .insert({
-        title: body.description.slice(0, 80),
-        description: body.description,
-        category: body.category,
-        latitude: body.latitude,
-        longitude: body.longitude,
-        embedding,
-        status: "open",
-        priority_score: 40,
-        report_count: 1,
-      })
-      .select("id")
-      .single();
-
-    if (issueError) throw issueError;
-
-    const { error: complaintError } = await supabase.from("complaints").insert({
-      issue_id: newIssue.id,
-      description: body.description,
-      latitude: body.latitude,
-      longitude: body.longitude,
-      image_url: imageUrl,
-      similarity_score: null,
-    });
-
-    if (complaintError) throw complaintError;
+    const created = await createMasterIssue(supabase, body, image);
 
     return NextResponse.json({
       action: "created",
       message: "No nearby strong duplicate found. A new master issue was created.",
-      issueId: newIssue.id,
+      issueId: created.issueId,
+      priorityScore: created.priorityScore,
     });
   } catch (error) {
     console.error(error);
