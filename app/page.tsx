@@ -6,6 +6,7 @@ export default function Home() {
       <nav className="nav">
         <div className="brand">CivicMerge AI</div>
         <div className="actions">
+          <Link className="button secondary" href="/track">Track complaint</Link>
           <Link className="button secondary" href="/admin">Admin dashboard</Link>
           <Link className="button" href="/report">Report an issue</Link>
         </div>
@@ -20,7 +21,8 @@ export default function Home() {
           every report as supporting evidence.
         </p>
         <div className="actions">
-          <Link className="button" href="/report">Try duplicate detection</Link>
+          <Link className="button" href="/report">Report an issue</Link>
+          <Link className="button secondary" href="/track">Track complaint</Link>
           <Link className="button secondary" href="/admin">View command center</Link>
         </div>
       </section>

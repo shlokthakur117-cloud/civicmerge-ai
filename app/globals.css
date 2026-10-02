@@ -509,3 +509,168 @@ th, td {
     grid-template-columns: 1fr;
   }
 }
+
+
+.trackingHero {
+  max-width: 880px;
+}
+
+.trackingSearchCard {
+  max-width: 680px;
+  margin-top: 26px;
+}
+
+.trackingForm {
+  max-width: none;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.trackingForm .authMessage {
+  grid-column: 1 / -1;
+}
+
+.trackingConfirmation {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.trackingCode {
+  display: inline-block;
+  max-width: 100%;
+  margin-top: 7px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #111827;
+  color: white;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.trackingHint {
+  margin-bottom: 0;
+}
+
+.trackingResultCard {
+  display: grid;
+  gap: 24px;
+}
+
+.trackingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.trackingProgress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.trackingStep {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #6b7280;
+}
+
+.trackingStep.completed {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.trackingStep.current {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, .08);
+}
+
+.trackingStepDot {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.trackingStep.completed .trackingStepDot {
+  background: #2563eb;
+  color: white;
+}
+
+.trackingInfoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.trackingInfo,
+.trackingPanel {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.trackingInfo strong {
+  font-size: 18px;
+}
+
+.trackingPanels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.trackingPanel h3 {
+  margin: 3px 0;
+}
+
+.trackingTimestamp {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.trackingNotFound {
+  max-width: 650px;
+  margin: 8vh auto 0;
+}
+
+@media (max-width: 820px) {
+  .trackingProgress,
+  .trackingInfoGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .trackingPanels {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .trackingForm {
+    grid-template-columns: 1fr;
+  }
+
+  .trackingProgress,
+  .trackingInfoGrid {
+    grid-template-columns: 1fr;
+  }
+}
