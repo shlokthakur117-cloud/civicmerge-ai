@@ -5,6 +5,7 @@ import type { MapIssue } from "./IssueMap";
 
 function statusColor(status: string) {
   if (status === "resolved") return "#16a34a";
+  if (status === "in_progress") return "#2563eb";
   if (status === "assigned") return "#f59e0b";
   return "#dc2626";
 }
@@ -42,7 +43,7 @@ export default function LeafletIssueMap({ issues }: { issues: MapIssue[] }) {
               <br />
               Priority: {issue.priority_score}
               <br />
-              Status: {issue.status}
+              Status: {issue.status.replaceAll("_", " ")}
             </Popup>
           </CircleMarker>
         );

@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
-const allowedStatuses = new Set(["open", "assigned", "resolved"]);
+const allowedStatuses = new Set(["open", "assigned", "in_progress", "resolved"]);
+const allowedDepartments = new Set([
+  "unassigned",
+  "roads",
+  "water",
+  "waste",
+  "electrical",
+  "drainage",
+  "general",
+]);
 
 export async function PATCH(
   request: Request,
@@ -9,10 +18,20 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const { status } = await request.json();
+    const body = await request.json();
+    const status = body.status ? String(body.status) : undefined;
+    const department = body.department ? String(body.department) : undefined;
 
-    if (!allowedStatuses.has(status)) {
+    if (!status && !department) {
+      return NextResponse.json({ message: "No update was provided." }, { status: 400 });
+    }
+
+    if (status && !allowedStatuses.has(status)) {
       return NextResponse.json({ message: "Invalid issue status." }, { status: 400 });
+    }
+
+    if (department && !allowedDepartments.has(department)) {
+      return NextResponse.json({ message: "Invalid department." }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
@@ -24,22 +43,30 @@ export async function PATCH(
       );
     }
 
+    const patch: Record<string, string> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (status) patch.status = status;
+    if (department) patch.department = department;
+
     const { data, error } = await supabase
       .from("issues")
-      .update({
-        status,
-        updated_at: new Date().toISOString(),
-      })
+      .update(patch)
       .eq("id", id)
-      .select("id,status")
+      .select("id,status,department")
       .single();
 
     if (error) throw error;
 
+    const messages: string[] = [];
+    if (status) messages.push("Status changed to " + status.replaceAll("_", " "));
+    if (department) messages.push("Assigned department: " + department);
+
     const { error: historyError } = await supabase.from("issue_updates").insert({
       issue_id: id,
-      status,
-      message: "Status changed to " + status,
+      status: data.status,
+      message: messages.join(" • "),
     });
 
     if (historyError) throw historyError;

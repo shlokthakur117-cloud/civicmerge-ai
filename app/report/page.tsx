@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import Link from "next/link";
 
 type ApiResult = {
@@ -9,9 +9,13 @@ type ApiResult = {
   score?: number;
   distanceMeters?: number;
   issueId?: string;
+  matchedTitle?: string;
+  matchedCategory?: string;
+  matchedStatus?: string;
 };
 
 export default function ReportPage() {
+  const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ApiResult | null>(null);
   const [coords, setCoords] = useState({ latitude: "", longitude: "" });
@@ -27,12 +31,8 @@ export default function ReportPage() {
     );
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function sendComplaint(form: FormData) {
     setLoading(true);
-    setResult(null);
-
-    const form = new FormData(event.currentTarget);
 
     try {
       const response = await fetch("/api/complaints", {
@@ -49,6 +49,28 @@ export default function ReportPage() {
     }
   }
 
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setResult(null);
+    await sendComplaint(new FormData(event.currentTarget));
+  }
+
+  async function resolvePossibleDuplicate(
+    action: "merge" | "create_separate",
+  ) {
+    if (!formRef.current || !result?.issueId) return;
+
+    const form = new FormData(formRef.current);
+    form.set("resolutionAction", action);
+    form.set("matchedIssueId", result.issueId);
+
+    if (typeof result.score === "number") {
+      form.set("resolutionScore", String(result.score));
+    }
+
+    await sendComplaint(form);
+  }
+
   return (
     <main>
       <nav className="nav">
@@ -63,7 +85,7 @@ export default function ReportPage() {
           Your report is checked against nearby master issues before a new ticket is created.
         </p>
 
-        <form onSubmit={submit}>
+        <form ref={formRef} onSubmit={submit}>
           <label>
             Category
             <select name="category" required>
@@ -128,13 +150,50 @@ export default function ReportPage() {
         {result && (
           <div className="result">
             <strong>{result.message}</strong>
+
             {typeof result.score === "number" && (
               <p>Duplicate confidence: {Math.round(result.score * 100)}%</p>
             )}
+
             {typeof result.distanceMeters === "number" && (
               <p>Distance from matched issue: {result.distanceMeters} m</p>
             )}
-            {result.issueId && (
+
+            {result.action === "possible_duplicate" && result.issueId && (
+              <div className="duplicateDecision">
+                <div className="duplicatePreview">
+                  <span className="eyebrow">Nearby master issue</span>
+                  <strong>{result.matchedTitle ?? "Possible matching issue"}</strong>
+                  <span className="muted">
+                    {result.matchedCategory ?? "civic issue"} • {result.matchedStatus ?? "open"}
+                  </span>
+                  <Link href={"/issues/" + result.issueId}>
+                    Review master issue →
+                  </Link>
+                </div>
+
+                <div className="decisionActions">
+                  <button
+                    className="button"
+                    type="button"
+                    disabled={loading}
+                    onClick={() => resolvePossibleDuplicate("merge")}
+                  >
+                    Merge with this issue
+                  </button>
+                  <button
+                    className="button secondary"
+                    type="button"
+                    disabled={loading}
+                    onClick={() => resolvePossibleDuplicate("create_separate")}
+                  >
+                    Create separate issue
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {result.action !== "possible_duplicate" && result.issueId && (
               <div className="resultActions">
                 <Link className="button" href={"/issues/" + result.issueId}>
                   View complaint & photo
