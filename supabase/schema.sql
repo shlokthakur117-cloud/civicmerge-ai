@@ -5,7 +5,8 @@ create table if not exists public.issues (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   description text not null,
-  category text not null,
+  category text not null
+    check (category in ('pothole', 'streetlight', 'garbage', 'water_leak', 'drainage', 'other')),
   latitude double precision not null check (latitude between -90 and 90),
   longitude double precision not null check (longitude between -180 and 180),
   embedding extensions.vector(384),
