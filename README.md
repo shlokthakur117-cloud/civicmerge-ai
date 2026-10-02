@@ -57,3 +57,8 @@ Hackathon thresholds:
 - 85%+ → merge automatically
 - 70–84% → possible duplicate
 - below 70% → create a new Master Issue
+
+
+## Deployment note
+
+Current production code uses Supabase native `gte-small` embeddings. OpenAI API credentials are not required.
