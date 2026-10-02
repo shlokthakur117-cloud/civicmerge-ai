@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { priorityBand } from "@/lib/priority";
+import { civicCategoryLabel } from "@/lib/categories";
 import DemoControls from "./DemoControls";
 import IssueActions from "./IssueActions";
 import IssueMap from "./IssueMap";
@@ -149,7 +150,7 @@ export default async function AdminPage() {
                 {photo ? (
                   <img className="issueCardImage" src={photo.image_url} alt="" />
                 ) : (
-                  <div className="issueCardPlaceholder">{label(issue.category)}</div>
+                  <div className="issueCardPlaceholder">{civicCategoryLabel(issue.category)}</div>
                 )}
 
                 <div className="issueCardBody">
@@ -182,7 +183,7 @@ export default async function AdminPage() {
             {categoryCounts.map((item) => (
               <div className="barRow" key={item.name}>
                 <div className="barLabel">
-                  <span>{label(item.name)}</span>
+                  <span>{civicCategoryLabel(item.name)}</span>
                   <strong>{item.value}</strong>
                 </div>
                 <div className="barTrack">
@@ -200,7 +201,7 @@ export default async function AdminPage() {
             {statusCounts.map((item) => (
               <div className="barRow" key={item.name}>
                 <div className="barLabel">
-                  <span>{label(item.name)}</span>
+                  <span>{civicCategoryLabel(item.name)}</span>
                   <strong>{item.value}</strong>
                 </div>
                 <div className="barTrack">
@@ -315,7 +316,7 @@ export default async function AdminPage() {
                           <strong>{issue.title}</strong>
                         </Link>
                         <div className="tableSubline">
-                          {label(issue.category)}
+                          {civicCategoryLabel(issue.category)}
                           {issue.source === "demo" ? " • Demo" : ""}
                         </div>
                       </td>
