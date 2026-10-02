@@ -10,15 +10,69 @@ type ComplaintInput = {
   longitude: number;
 };
 
+async function uploadComplaintImage(file: File | null, supabase: any) {
+  if (!file || file.size === 0) return null;
+
+  const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+  if (!allowedTypes.has(file.type)) {
+    throw new Error("Photo must be JPG, PNG, or WebP.");
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("Photo must be 5 MB or smaller.");
+  }
+
+  const extension =
+    file.type === "image/png" ? "png" :
+    file.type === "image/webp" ? "webp" : "jpg";
+
+  const path =
+    new Date().toISOString().slice(0, 10) +
+    "/" +
+    crypto.randomUUID() +
+    "." +
+    extension;
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+
+  const { error } = await supabase.storage
+    .from("complaint-images")
+    .upload(path, bytes, {
+      contentType: file.type,
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("complaint-images").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as ComplaintInput;
+    const form = await request.formData();
+
+    const body: ComplaintInput = {
+      category: String(form.get("category") ?? ""),
+      description: String(form.get("description") ?? "").trim(),
+      latitude: Number(form.get("latitude")),
+      longitude: Number(form.get("longitude")),
+    };
+
+    const imageValue = form.get("image");
+    const image = imageValue instanceof File ? imageValue : null;
 
     if (
       !body.category ||
       !body.description ||
       !Number.isFinite(body.latitude) ||
-      !Number.isFinite(body.longitude)
+      !Number.isFinite(body.longitude) ||
+      body.latitude < -90 ||
+      body.latitude > 90 ||
+      body.longitude < -180 ||
+      body.longitude > 180
     ) {
       return NextResponse.json({ message: "Invalid complaint data." }, { status: 400 });
     }
@@ -69,11 +123,14 @@ export async function POST(request: Request) {
     const best = scored[0];
 
     if (best && best.score >= 0.85) {
+      const imageUrl = await uploadComplaintImage(image, supabase);
+
       const { error: complaintError } = await supabase.from("complaints").insert({
         issue_id: best.id,
         description: body.description,
         latitude: body.latitude,
         longitude: body.longitude,
+        image_url: imageUrl,
         similarity_score: best.score,
       });
 
@@ -102,12 +159,14 @@ export async function POST(request: Request) {
     if (best && best.score >= 0.7) {
       return NextResponse.json({
         action: "possible_duplicate",
-        message: "A nearby possible duplicate was found. Review before creating a separate issue.",
+        message: "A nearby possible duplicate was found. Review it before creating a separate issue.",
         score: best.score,
         distanceMeters: best.distanceMeters,
         issueId: best.id,
       });
     }
+
+    const imageUrl = await uploadComplaintImage(image, supabase);
 
     const { data: newIssue, error: issueError } = await supabase
       .from("issues")
@@ -132,6 +191,7 @@ export async function POST(request: Request) {
       description: body.description,
       latitude: body.latitude,
       longitude: body.longitude,
+      image_url: imageUrl,
       similarity_score: null,
     });
 

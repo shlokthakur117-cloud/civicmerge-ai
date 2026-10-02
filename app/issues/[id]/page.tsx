@@ -11,28 +11,38 @@ export default async function IssuePage({
 
   let issue: any = null;
   let complaints: any[] = [];
+  let updates: any[] = [];
 
   if (supabase) {
-    const { data: issueData } = await supabase.from("issues").select("*").eq("id", id).single();
-    const { data: complaintData } = await supabase
-      .from("complaints")
-      .select("*")
-      .eq("issue_id", id)
-      .order("created_at", { ascending: false });
+    const [{ data: issueData }, { data: complaintData }, { data: updateData }] =
+      await Promise.all([
+        supabase.from("issues").select("*").eq("id", id).single(),
+        supabase
+          .from("complaints")
+          .select("*")
+          .eq("issue_id", id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("issue_updates")
+          .select("*")
+          .eq("issue_id", id)
+          .order("created_at", { ascending: false }),
+      ]);
 
     issue = issueData;
     complaints = complaintData ?? [];
+    updates = updateData ?? [];
   }
 
   if (!issue) {
     issue = {
       id,
-      title: "Demo master issue",
-      description: "Connect Supabase and run schema.sql to see live issue data.",
-      category: "pothole",
+      title: "Issue not found",
+      description: "This issue could not be loaded.",
+      category: "unknown",
       status: "open",
-      report_count: 3,
-      priority_score: 78,
+      report_count: 0,
+      priority_score: 0,
     };
   }
 
@@ -44,28 +54,67 @@ export default async function IssuePage({
       </nav>
 
       <section className="card">
-        <div className="eyebrow">Master Issue #{String(issue.id).slice(0, 8)}</div>
-        <h2>{issue.title}</h2>
+        <div className="sectionHeader">
+          <div>
+            <div className="eyebrow">Master Issue #{String(issue.id).slice(0, 8)}</div>
+            <h2>{issue.title}</h2>
+          </div>
+          <span className={"statusBadge " + issue.status}>{issue.status}</span>
+        </div>
+
         <p className="lead">{issue.description}</p>
-        <div className="grid">
+
+        <div className="dashboardGrid issueStats">
           <div><strong>{issue.report_count}</strong><div className="muted">Supporting reports</div></div>
           <div><strong>{issue.priority_score}</strong><div className="muted">Priority score</div></div>
+          <div><strong>{issue.category}</strong><div className="muted">Category</div></div>
           <div><strong>{issue.status}</strong><div className="muted">Status</div></div>
         </div>
       </section>
 
-      <section style={{ marginTop: 20 }}>
-        <h2>Citizen evidence</h2>
-        {complaints.length === 0 ? (
-          <div className="card muted">No live complaints loaded yet.</div>
-        ) : (
-          complaints.map((complaint) => (
-            <div className="card" key={complaint.id} style={{ marginBottom: 12 }}>
-              <strong>{complaint.description}</strong>
-              <p className="muted">Similarity score: {complaint.similarity_score ?? "Original report"}</p>
-            </div>
-          ))
-        )}
+      <section className="detailGrid">
+        <div>
+          <h2>Citizen evidence</h2>
+          {complaints.length === 0 ? (
+            <div className="card muted">No supporting reports loaded yet.</div>
+          ) : (
+            complaints.map((complaint) => (
+              <article className="card evidenceCard" key={complaint.id}>
+                {complaint.image_url && (
+                  <img
+                    src={complaint.image_url}
+                    alt="Citizen evidence for this civic issue"
+                    className="evidenceImage"
+                  />
+                )}
+                <strong>{complaint.description}</strong>
+                <p className="muted evidenceMeta">
+                  {complaint.similarity_score
+                    ? "AI match: " + Math.round(complaint.similarity_score * 100) + "%"
+                    : "Original report"}
+                </p>
+              </article>
+            ))
+          )}
+        </div>
+
+        <div>
+          <h2>Status history</h2>
+          <div className="card">
+            {updates.length === 0 ? (
+              <p className="muted">No status changes yet.</p>
+            ) : (
+              <div className="timeline">
+                {updates.map((update) => (
+                  <div key={update.id} className="timelineItem">
+                    <strong>{update.status}</strong>
+                    <span className="muted">{update.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </section>
     </main>
   );

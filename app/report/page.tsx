@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 
 type ApiResult = {
-  action: "merged" | "created" | "possible_duplicate";
+  action?: "merged" | "created" | "possible_duplicate";
   message: string;
   score?: number;
   distanceMeters?: number;
@@ -33,22 +33,20 @@ export default function ReportPage() {
     setResult(null);
 
     const form = new FormData(event.currentTarget);
-    const payload = {
-      category: form.get("category"),
-      description: form.get("description"),
-      latitude: Number(form.get("latitude")),
-      longitude: Number(form.get("longitude")),
-    };
 
-    const response = await fetch("/api/complaints", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const response = await fetch("/api/complaints", {
+        method: "POST",
+        body: form,
+      });
 
-    const data = await response.json();
-    setResult(data);
-    setLoading(false);
+      const data = await response.json();
+      setResult(data);
+    } catch {
+      setResult({ message: "Could not submit the complaint. Please try again." });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -62,7 +60,7 @@ export default function ReportPage() {
         <div className="eyebrow">Citizen reporting</div>
         <h2>Report a civic issue</h2>
         <p className="muted">
-          The system checks your report against existing master issues before creating a new ticket.
+          Your report is checked against nearby master issues before a new ticket is created.
         </p>
 
         <form onSubmit={submit}>
@@ -87,22 +85,43 @@ export default function ReportPage() {
             />
           </label>
 
-          <div className="grid">
+          <label>
+            Photo <span className="muted">(optional, max 5 MB)</span>
+            <input
+              name="image"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+            />
+          </label>
+
+          <div className="grid compactGrid">
             <label>
               Latitude
-              <input name="latitude" required value={coords.latitude} onChange={(e) => setCoords({ ...coords, latitude: e.target.value })} />
+              <input
+                name="latitude"
+                required
+                value={coords.latitude}
+                onChange={(e) => setCoords({ ...coords, latitude: e.target.value })}
+              />
             </label>
             <label>
               Longitude
-              <input name="longitude" required value={coords.longitude} onChange={(e) => setCoords({ ...coords, longitude: e.target.value })} />
+              <input
+                name="longitude"
+                required
+                value={coords.longitude}
+                onChange={(e) => setCoords({ ...coords, longitude: e.target.value })}
+              />
             </label>
-            <div style={{ display: "flex", alignItems: "end" }}>
-              <button type="button" className="button secondary" onClick={useMyLocation}>Use my location</button>
+            <div className="locationButton">
+              <button type="button" className="button secondary" onClick={useMyLocation}>
+                Use my location
+              </button>
             </div>
           </div>
 
           <button className="button" disabled={loading}>
-            {loading ? "Checking for duplicates..." : "Submit complaint"}
+            {loading ? "Checking nearby issues..." : "Submit complaint"}
           </button>
         </form>
 
@@ -115,7 +134,13 @@ export default function ReportPage() {
             {typeof result.distanceMeters === "number" && (
               <p>Distance from matched issue: {result.distanceMeters} m</p>
             )}
-            {result.issueId && <p>Master issue ID: {result.issueId}</p>}
+            {result.issueId && (
+              <p>
+                <Link href={"/issues/" + result.issueId}>
+                  View master issue →
+                </Link>
+              </p>
+            )}
           </div>
         )}
       </section>
