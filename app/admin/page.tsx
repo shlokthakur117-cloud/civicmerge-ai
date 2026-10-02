@@ -136,6 +136,9 @@ export default async function AdminPage() {
         <Link className="brand" href="/">CivicMerge AI</Link>
         <div className="actions">
           <span className="adminIdentity">{session.email}</span>
+          <Link className="button secondary" href="/admin/admins">
+            Manage admins
+          </Link>
           <DemoControls />
           <Link className="button" href="/report">Report issue</Link>
           <AdminLogout />
