@@ -2,26 +2,18 @@
 
 AI-powered smart-city complaint deduplication and issue fusion for a 24-hour hackathon.
 
-## Problem
-
-Citizens often report the same pothole, broken streetlight, garbage pile, water leak, or drainage issue multiple times. Traditional systems create separate tickets, which creates administrative noise and fragments evidence.
-
-CivicMerge AI converts duplicate reports into supporting evidence for one **Master Issue**.
-
 ## Core flow
 
 ```text
 Citizen report
    ↓
-Generate text embedding
+Supabase gte-small embedding
    ↓
-Find semantically similar issues with pgvector
+pgvector similarity search
    ↓
-Combine semantic + location + category + time signals
+Semantic + location + category + time scoring
    ↓
-High confidence → merge into existing Master Issue
-Medium confidence → flag possible duplicate
-Low confidence → create new Master Issue
+Merge duplicate or create Master Issue
 ```
 
 ## Stack
@@ -29,74 +21,39 @@ Low confidence → create new Master Issue
 - Next.js + TypeScript
 - Supabase PostgreSQL
 - Supabase pgvector
-- Supabase Storage/Auth ready
-- OpenAI embeddings
-- Vercel deployment
-- GitHub source control
+- Supabase Edge Functions
+- Supabase built-in `gte-small` embeddings
+- Vercel
+- GitHub
 
-## Local setup
+No OpenAI API key is required for duplicate detection.
 
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-2. Copy environment variables:
-
-```bash
-cp .env.example .env.local
-```
-
-3. Fill in:
+## Environment variables
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
 SUPABASE_SECRET_KEY=
-OPENAI_API_KEY=
 ```
 
-Keep `SUPABASE_SECRET_KEY` and `OPENAI_API_KEY` server-only. Never commit real secrets.
-
-4. In Supabase SQL Editor, run:
-
-```text
-supabase/schema.sql
-```
-
-5. Start the app:
-
-```bash
-npm run dev
-```
-
-Open http://localhost:3000.
+Keep `SUPABASE_SECRET_KEY` server-only.
 
 ## MVP routes
 
-- `/` — product landing page
-- `/report` — citizen complaint form
-- `/admin` — municipal command center
+- `/` — landing page
+- `/report` — citizen complaint submission
+- `/admin` — municipal dashboard
 - `/issues/[id]` — master issue details
-- `/api/complaints` — AI duplicate-detection endpoint
+- `/api/complaints` — duplicate-detection API
 
 ## Duplicate score
 
-The MVP currently uses:
-
 - 55% semantic similarity
-- 25% geographic similarity
+- 25% geographic proximity
 - 15% category match
-- 5% time similarity
+- 5% time relevance
 
-Thresholds:
+Hackathon thresholds:
 
-- 85%+ → auto-merge
+- 85%+ → merge automatically
 - 70–84% → possible duplicate
-- below 70% → create a new issue
-
-These thresholds are hackathon defaults and should be tuned with real municipal data before production use.
-
-## 24-hour scope
-
-Build and demo the duplicate-fusion workflow first. Avoid adding chatbots, native mobile apps, blockchain, microservices, or custom model training until the core workflow is stable.
+- below 70% → create a new Master Issue
