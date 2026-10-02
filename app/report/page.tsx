@@ -13,6 +13,7 @@ type ApiResult = {
   matchedTitle?: string;
   matchedCategory?: string;
   matchedStatus?: string;
+  matchedLocation?: string | null;
 };
 
 export default function ReportPage() {
@@ -169,6 +170,9 @@ export default function ReportPage() {
                       ? civicCategoryLabel(result.matchedCategory)
                       : "Civic issue"} • {result.matchedStatus ?? "open"}
                   </span>
+                  {result.matchedLocation && (
+                    <span className="locationLabel">{result.matchedLocation}</span>
+                  )}
                   <Link href={"/issues/" + result.issueId}>
                     Review master issue →
                   </Link>

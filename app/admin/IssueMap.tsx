@@ -12,6 +12,7 @@ export type MapIssue = {
   title: string;
   latitude: number;
   longitude: number;
+  location_label?: string | null;
   status: string;
   report_count: number;
   priority_score: number;

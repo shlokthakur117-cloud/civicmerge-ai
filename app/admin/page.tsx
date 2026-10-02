@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { priorityBand } from "@/lib/priority";
 import { civicCategoryLabel } from "@/lib/categories";
+import { getAdminSession, hasAnyAdmins } from "@/lib/admin-auth";
+import AdminLogout from "./AdminLogout";
 import DemoControls from "./DemoControls";
 import IssueActions from "./IssueActions";
 import IssueMap from "./IssueMap";
@@ -12,6 +15,7 @@ type Issue = {
   category: string;
   latitude: number;
   longitude: number;
+  location_label: string | null;
   report_count: number;
   priority_score: number;
   status: string;
@@ -27,6 +31,7 @@ type Evidence = {
   image_url: string;
   latitude: number;
   longitude: number;
+  location_label: string | null;
   created_at: string;
 };
 
@@ -40,6 +45,13 @@ function barWidth(value: number, max: number) {
 }
 
 export default async function AdminPage() {
+  const session = await getAdminSession();
+
+  if (!session) {
+    const hasAdmins = await hasAnyAdmins();
+    redirect(hasAdmins ? "/admin/login" : "/admin/setup");
+  }
+
   const supabase = getSupabaseAdmin();
   let issues: Issue[] = [];
   let evidence: Evidence[] = [];
@@ -49,12 +61,12 @@ export default async function AdminPage() {
       await Promise.all([
         supabase
           .from("issues")
-          .select("id,title,category,latitude,longitude,report_count,priority_score,status,department,source,created_at")
+          .select("id,title,category,latitude,longitude,location_label,report_count,priority_score,status,department,source,created_at")
           .order("priority_score", { ascending: false })
           .limit(100),
         supabase
           .from("complaints")
-          .select("id,issue_id,description,image_url,latitude,longitude,created_at")
+          .select("id,issue_id,description,image_url,latitude,longitude,location_label,created_at")
           .not("image_url", "is", null)
           .order("created_at", { ascending: false })
           .limit(12),
@@ -100,7 +112,9 @@ export default async function AdminPage() {
 
   const hotspots = Array.from(
     issues.reduce((map, issue) => {
-      const key = issue.latitude.toFixed(3) + ", " + issue.longitude.toFixed(3);
+      const key =
+        issue.location_label ??
+        issue.latitude.toFixed(3) + ", " + issue.longitude.toFixed(3);
       const current = map.get(key) ?? { reports: 0, issues: 0 };
       current.reports += issue.report_count;
       current.issues += 1;
@@ -121,8 +135,10 @@ export default async function AdminPage() {
       <nav className="nav">
         <Link className="brand" href="/">CivicMerge AI</Link>
         <div className="actions">
+          <span className="adminIdentity">{session.email}</span>
           <DemoControls />
           <Link className="button" href="/report">Report issue</Link>
+          <AdminLogout />
         </div>
       </nav>
 
@@ -162,6 +178,9 @@ export default async function AdminPage() {
                   <span className="muted">
                     {issue.report_count} reports • {label(issue.department)}
                   </span>
+                  {issue.location_label && (
+                    <span className="locationLabel">{issue.location_label}</span>
+                  )}
                   <span className="coordinateChip">
                     {issue.latitude.toFixed(5)}, {issue.longitude.toFixed(5)}
                   </span>
@@ -201,7 +220,7 @@ export default async function AdminPage() {
             {statusCounts.map((item) => (
               <div className="barRow" key={item.name}>
                 <div className="barLabel">
-                  <span>{civicCategoryLabel(item.name)}</span>
+                  <span>{label(item.name)}</span>
                   <strong>{item.value}</strong>
                 </div>
                 <div className="barTrack">
@@ -246,6 +265,9 @@ export default async function AdminPage() {
                 </Link>
                 <div className="evidenceTileBody">
                   <strong>{item.description}</strong>
+                  {item.location_label && (
+                    <span className="locationLabel">{item.location_label}</span>
+                  )}
                   <span className="coordinateChip">
                     {Number(item.latitude).toFixed(5)}, {Number(item.longitude).toFixed(5)}
                   </span>
@@ -298,7 +320,7 @@ export default async function AdminPage() {
                 <tr>
                   <th>Issue</th>
                   <th>Photo</th>
-                  <th>Coordinates</th>
+                  <th>Location</th>
                   <th>Reports</th>
                   <th>Priority</th>
                   <th>Workflow</th>
@@ -331,9 +353,14 @@ export default async function AdminPage() {
                         )}
                       </td>
                       <td>
-                        <span className="coordinateChip">
-                          {issue.latitude.toFixed(5)}, {issue.longitude.toFixed(5)}
-                        </span>
+                        <div className="tableLocation">
+                          {issue.location_label && (
+                            <strong>{issue.location_label}</strong>
+                          )}
+                          <span className="coordinateChip">
+                            {issue.latitude.toFixed(5)}, {issue.longitude.toFixed(5)}
+                          </span>
+                        </div>
                       </td>
                       <td>{issue.report_count}</td>
                       <td>

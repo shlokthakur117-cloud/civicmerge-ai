@@ -79,9 +79,10 @@ export default async function IssuePage({
         {Number.isFinite(Number(issue.latitude)) && Number.isFinite(Number(issue.longitude)) && (
           <div className="masterLocation">
             <span className="eyebrow">Master issue location</span>
-            <strong>
+            {issue.location_label && <strong>{issue.location_label}</strong>}
+            <span className="coordinateChip">
               {Number(issue.latitude).toFixed(5)}, {Number(issue.longitude).toFixed(5)}
-            </strong>
+            </span>
           </div>
         )}
 
@@ -116,9 +117,14 @@ export default async function IssuePage({
                       ? "AI match: " + Math.round(complaint.similarity_score * 100) + "%"
                       : "Original report"}
                   </p>
-                  <span className="coordinateChip">
-                    {Number(complaint.latitude).toFixed(5)}, {Number(complaint.longitude).toFixed(5)}
-                  </span>
+                  <div className="evidenceLocation">
+                    {complaint.location_label && (
+                      <span className="locationLabel">{complaint.location_label}</span>
+                    )}
+                    <span className="coordinateChip">
+                      {Number(complaint.latitude).toFixed(5)}, {Number(complaint.longitude).toFixed(5)}
+                    </span>
+                  </div>
                 </div>
               </article>
             ))

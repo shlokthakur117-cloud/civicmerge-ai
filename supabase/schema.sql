@@ -9,6 +9,7 @@ create table if not exists public.issues (
     check (category in ('pothole', 'streetlight', 'garbage', 'water_leak', 'drainage', 'other')),
   latitude double precision not null check (latitude between -90 and 90),
   longitude double precision not null check (longitude between -180 and 180),
+  location_label text,
   embedding extensions.vector(384),
   status text not null default 'open'
     check (status in ('open', 'assigned', 'in_progress', 'resolved')),
@@ -29,6 +30,7 @@ create table if not exists public.complaints (
   description text not null,
   latitude double precision not null check (latitude between -90 and 90),
   longitude double precision not null check (longitude between -180 and 180),
+  location_label text,
   image_url text null,
   similarity_score double precision null,
   created_at timestamptz not null default now()
@@ -42,17 +44,25 @@ create table if not exists public.issue_updates (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.admin_users (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  email text not null unique,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists issues_category_idx on public.issues(category);
 create index if not exists issues_status_idx on public.issues(status);
 create index if not exists issues_department_idx on public.issues(department);
 create index if not exists issues_source_idx on public.issues(source);
 create index if not exists issues_priority_idx on public.issues(priority_score desc);
+create index if not exists issues_location_label_idx on public.issues(location_label);
 create index if not exists complaints_issue_id_idx on public.complaints(issue_id);
 create index if not exists issue_updates_issue_id_idx on public.issue_updates(issue_id);
 
 alter table public.issues enable row level security;
 alter table public.complaints enable row level security;
 alter table public.issue_updates enable row level security;
+alter table public.admin_users enable row level security;
 
 insert into storage.buckets (
   id, name, public, file_size_limit, allowed_mime_types
@@ -82,6 +92,7 @@ returns table (
   category text,
   latitude double precision,
   longitude double precision,
+  location_label text,
   report_count integer,
   priority_score integer,
   created_at timestamptz,
@@ -116,6 +127,7 @@ as $$
     c.category,
     c.latitude,
     c.longitude,
+    c.location_label,
     c.report_count,
     c.priority_score,
     c.created_at,

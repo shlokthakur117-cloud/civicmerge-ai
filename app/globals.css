@@ -389,3 +389,64 @@ th, td {
 .evidenceMetaRow .evidenceMeta {
   margin: 0;
 }
+
+
+.locationLabel {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.tableLocation,
+.evidenceLocation {
+  display: grid;
+  gap: 7px;
+}
+
+.adminIdentity {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.authPage {
+  min-height: 100vh;
+}
+
+.authCard {
+  max-width: 520px;
+  margin: 7vh auto 0;
+  padding: 28px;
+}
+
+.authForm {
+  margin-top: 22px;
+}
+
+.authMessage {
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .adminIdentity {
+    display: none;
+  }
+
+  .authCard {
+    margin-top: 20px;
+  }
+}

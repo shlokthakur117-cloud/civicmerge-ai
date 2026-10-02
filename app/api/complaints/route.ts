@@ -3,6 +3,7 @@ import { createEmbedding } from "@/lib/embeddings";
 import { calculateDuplicateScore, distanceMeters } from "@/lib/duplicate-score";
 import { calculatePriority } from "@/lib/priority";
 import { isCivicCategory } from "@/lib/categories";
+import { reverseGeocode } from "@/lib/geocoding";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 type ComplaintInput = {
@@ -18,6 +19,7 @@ type IssueForMerge = {
   category: string;
   latitude: number;
   longitude: number;
+  location_label?: string | null;
   report_count: number;
   status: string;
   source?: string;
@@ -81,6 +83,7 @@ async function mergeComplaint(
   body: ComplaintInput,
   image: File | null,
   similarityScore: number | null,
+  locationLabel: string | null,
 ) {
   const imageUrl = await uploadComplaintImage(image, supabase);
 
@@ -89,6 +92,7 @@ async function mergeComplaint(
     description: body.description,
     latitude: body.latitude,
     longitude: body.longitude,
+    location_label: locationLabel,
     image_url: imageUrl,
     similarity_score: similarityScore,
   });
@@ -124,6 +128,7 @@ async function createMasterIssue(
   supabase: any,
   body: ComplaintInput,
   image: File | null,
+  locationLabel: string | null,
 ) {
   const embedding = await createEmbedding(body.description);
   const imageUrl = await uploadComplaintImage(image, supabase);
@@ -141,6 +146,7 @@ async function createMasterIssue(
       category: body.category,
       latitude: body.latitude,
       longitude: body.longitude,
+      location_label: locationLabel,
       embedding,
       status: "open",
       department: "unassigned",
@@ -158,6 +164,7 @@ async function createMasterIssue(
     description: body.description,
     latitude: body.latitude,
     longitude: body.longitude,
+    location_label: locationLabel,
     image_url: imageUrl,
     similarity_score: null,
   });
@@ -215,8 +222,13 @@ export async function POST(request: Request) {
       );
     }
 
+    const locationLabel = await reverseGeocode(
+      body.latitude,
+      body.longitude,
+    );
+
     if (resolutionAction === "create_separate") {
-      const created = await createMasterIssue(supabase, body, image);
+      const created = await createMasterIssue(supabase, body, image, locationLabel);
 
       return NextResponse.json({
         action: "created",
@@ -233,7 +245,7 @@ export async function POST(request: Request) {
 
       const { data: issue, error } = await supabase
         .from("issues")
-        .select("id,title,category,latitude,longitude,report_count,status,source")
+        .select("id,title,category,latitude,longitude,location_label,report_count,status,source")
         .eq("id", matchedIssueId)
         .single();
 
@@ -261,6 +273,7 @@ export async function POST(request: Request) {
         body,
         image,
         resolutionScore,
+        locationLabel,
       );
 
       return NextResponse.json({
@@ -316,6 +329,7 @@ export async function POST(request: Request) {
         body,
         image,
         best.score,
+        locationLabel,
       );
 
       return NextResponse.json({
@@ -338,10 +352,11 @@ export async function POST(request: Request) {
         matchedTitle: best.title,
         matchedCategory: best.category,
         matchedStatus: "open",
+        matchedLocation: best.location_label ?? null,
       });
     }
 
-    const created = await createMasterIssue(supabase, body, image);
+    const created = await createMasterIssue(supabase, body, image, locationLabel);
 
     return NextResponse.json({
       action: "created",

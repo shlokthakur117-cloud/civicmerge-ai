@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getAdminSession } from "@/lib/admin-auth";
 
 const allowedStatuses = new Set(["open", "assigned", "in_progress", "resolved"]);
 const allowedDepartments = new Set([
@@ -17,6 +18,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const adminSession = await getAdminSession();
+    if (!adminSession) {
+      return NextResponse.json(
+        { message: "Administrator sign-in required." },
+        { status: 401 },
+      );
+    }
+
     const { id } = await params;
     const body = await request.json();
     const status = body.status ? String(body.status) : undefined;
