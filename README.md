@@ -52,9 +52,11 @@ cp .env.example .env.local
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SECRET_KEY=
 OPENAI_API_KEY=
 ```
+
+Keep `SUPABASE_SECRET_KEY` and `OPENAI_API_KEY` server-only. Never commit real secrets.
 
 4. In Supabase SQL Editor, run:
 
