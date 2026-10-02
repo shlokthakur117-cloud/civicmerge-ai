@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
 import { calculatePriority } from "@/lib/priority";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getAdminSession } from "@/lib/admin-auth";
+
+const demoLocationLabels: Record<string, string> = {
+  "10000000-0000-4000-8000-000000000001": "NMIET Main Gate area, Talegaon Dabhade",
+  "10000000-0000-4000-8000-000000000002": "Station Road, Talegaon Dabhade",
+  "10000000-0000-4000-8000-000000000003": "Local Market area, Talegaon Dabhade",
+  "10000000-0000-4000-8000-000000000004": "Bus Stop area, Talegaon Dabhade",
+  "10000000-0000-4000-8000-000000000005": "Hostel Road area, Talegaon Dabhade",
+  "10000000-0000-4000-8000-000000000006": "College Junction area, Talegaon Dabhade",
+  "10000000-0000-4000-8000-000000000007": "Residential Lane area, Talegaon Dabhade",
+  "10000000-0000-4000-8000-000000000008": "Main Junction, Talegaon Dabhade",
+};
 
 const demoIssues = [
   {
@@ -95,6 +107,14 @@ const demoIssues = [
 
 export async function POST(request: Request) {
   try {
+    const adminSession = await getAdminSession();
+    if (!adminSession) {
+      return NextResponse.json(
+        { message: "Administrator sign-in required." },
+        { status: 401 },
+      );
+    }
+
     const { action } = await request.json();
     const supabase = getSupabaseAdmin();
 
@@ -132,6 +152,7 @@ export async function POST(request: Request) {
       category: issue.category,
       latitude: issue.latitude,
       longitude: issue.longitude,
+      location_label: demoLocationLabels[issue.id],
       status: issue.status,
       department: issue.department,
       source: "demo",
@@ -155,6 +176,7 @@ export async function POST(request: Request) {
             : "Supporting citizen report #" + (index + 1) + " for " + issue.title,
         latitude: issue.latitude + index * 0.000005,
         longitude: issue.longitude + index * 0.000005,
+        location_label: demoLocationLabels[issue.id],
         similarity_score: index === 0 ? null : Math.max(0.72, 0.98 - index * 0.02),
         created_at: new Date(Date.now() - index * 35 * 60 * 1000).toISOString(),
       })),
