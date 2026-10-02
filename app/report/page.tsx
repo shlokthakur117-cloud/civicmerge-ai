@@ -135,11 +135,14 @@ export default function ReportPage() {
               <p>Distance from matched issue: {result.distanceMeters} m</p>
             )}
             {result.issueId && (
-              <p>
-                <Link href={"/issues/" + result.issueId}>
-                  View master issue →
+              <div className="resultActions">
+                <Link className="button" href={"/issues/" + result.issueId}>
+                  View complaint & photo
                 </Link>
-              </p>
+                <Link className="button secondary" href="/admin">
+                  Open admin dashboard
+                </Link>
+              </div>
             )}
           </div>
         )}
