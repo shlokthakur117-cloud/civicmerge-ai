@@ -21,6 +21,7 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ApiResult | null>(null);
   const [coords, setCoords] = useState({ latitude: "", longitude: "" });
+  const [copied, setCopied] = useState(false);
 
   function useMyLocation() {
     navigator.geolocation.getCurrentPosition(
@@ -51,6 +52,16 @@ export default function ReportPage() {
     }
   }
 
+  async function copyTrackingId(id: string) {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setResult(null);
@@ -77,7 +88,10 @@ export default function ReportPage() {
     <main>
       <nav className="nav">
         <Link className="brand" href="/">CivicMerge AI</Link>
-        <Link className="button secondary" href="/admin">Admin dashboard</Link>
+        <div className="actions">
+          <Link className="button secondary" href="/track">Track complaint</Link>
+          <Link className="button secondary" href="/admin">Admin dashboard</Link>
+        </div>
       </nav>
 
       <section className="card">
@@ -200,13 +214,30 @@ export default function ReportPage() {
             )}
 
             {result.action !== "possible_duplicate" && result.issueId && (
-              <div className="resultActions">
-                <Link className="button" href={"/issues/" + result.issueId}>
-                  View complaint & photo
-                </Link>
-                <Link className="button secondary" href="/admin">
-                  Open admin dashboard
-                </Link>
+              <div className="trackingConfirmation">
+                <div>
+                  <div className="eyebrow">Your tracking ID</div>
+                  <div className="trackingCode">{result.issueId}</div>
+                  <p className="muted trackingHint">
+                    Save this ID. If your report was merged, this tracks the shared master issue.
+                  </p>
+                </div>
+
+                <div className="resultActions">
+                  <button
+                    className="button secondary"
+                    type="button"
+                    onClick={() => copyTrackingId(result.issueId!)}
+                  >
+                    {copied ? "Copied" : "Copy tracking ID"}
+                  </button>
+                  <Link className="button" href={"/track/" + result.issueId}>
+                    Track complaint
+                  </Link>
+                  <Link className="button secondary" href={"/issues/" + result.issueId}>
+                    View evidence
+                  </Link>
+                </div>
               </div>
             )}
           </div>
