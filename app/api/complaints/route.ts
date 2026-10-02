@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createEmbedding } from "@/lib/embeddings";
 import { calculateDuplicateScore, distanceMeters } from "@/lib/duplicate-score";
 import { calculatePriority } from "@/lib/priority";
+import { isCivicCategory } from "@/lib/categories";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 type ComplaintInput = {
@@ -193,7 +194,7 @@ export async function POST(request: Request) {
         : null;
 
     if (
-      !body.category ||
+      !isCivicCategory(body.category) ||
       !body.description ||
       !Number.isFinite(body.latitude) ||
       !Number.isFinite(body.longitude) ||

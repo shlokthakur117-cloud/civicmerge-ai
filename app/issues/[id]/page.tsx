@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { priorityBand } from "@/lib/priority";
+import { civicCategoryLabel } from "@/lib/categories";
 
 function label(value: string) {
   return value.replaceAll("_", " ").replace(/w/g, (letter) => letter.toUpperCase());
@@ -87,6 +88,7 @@ export default async function IssuePage({
         <div className="dashboardGrid issueStats">
           <div><strong>{issue.report_count}</strong><div className="muted">Supporting reports</div></div>
           <div><strong>{issue.priority_score}</strong><div className="muted">Priority score</div></div>
+          <div><strong>{civicCategoryLabel(issue.category)}</strong><div className="muted">Category</div></div>
           <div><strong>{label(issue.department ?? "unassigned")}</strong><div className="muted">Department</div></div>
           <div><strong>{label(issue.status)}</strong><div className="muted">Status</div></div>
         </div>

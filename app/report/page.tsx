@@ -2,6 +2,7 @@
 
 import { FormEvent, useRef, useState } from "react";
 import Link from "next/link";
+import { civicCategories, civicCategoryLabel } from "@/lib/categories";
 
 type ApiResult = {
   action?: "merged" | "created" | "possible_duplicate";
@@ -89,12 +90,11 @@ export default function ReportPage() {
           <label>
             Category
             <select name="category" required>
-              <option value="pothole">Pothole</option>
-              <option value="streetlight">Broken streetlight</option>
-              <option value="garbage">Garbage</option>
-              <option value="water_leak">Water leak</option>
-              <option value="drainage">Drainage</option>
-              <option value="other">Other</option>
+              {civicCategories.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -165,7 +165,9 @@ export default function ReportPage() {
                   <span className="eyebrow">Nearby master issue</span>
                   <strong>{result.matchedTitle ?? "Possible matching issue"}</strong>
                   <span className="muted">
-                    {result.matchedCategory ?? "civic issue"} • {result.matchedStatus ?? "open"}
+                    {result.matchedCategory
+                      ? civicCategoryLabel(result.matchedCategory)
+                      : "Civic issue"} • {result.matchedStatus ?? "open"}
                   </span>
                   <Link href={"/issues/" + result.issueId}>
                     Review master issue →
