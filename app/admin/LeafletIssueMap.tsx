@@ -45,6 +45,12 @@ export default function LeafletIssueMap({ issues }: { issues: MapIssue[] }) {
               <br />
               Status: {issue.status.replaceAll("_", " ")}
               <br />
+              {issue.location_label && (
+                <>
+                  Location: {issue.location_label}
+                  <br />
+                </>
+              )}
               Coordinates: {issue.latitude.toFixed(5)}, {issue.longitude.toFixed(5)}
             </Popup>
           </CircleMarker>
