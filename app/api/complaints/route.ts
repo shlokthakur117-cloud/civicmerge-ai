@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createEmbedding } from "@/lib/openai";
+import { createEmbedding } from "@/lib/embeddings";
 import { calculateDuplicateScore } from "@/lib/duplicate-score";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
