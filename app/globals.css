@@ -350,3 +350,42 @@ th, td {
 @media (max-width: 460px) {
   .dashboardGrid { grid-template-columns: 1fr; }
 }
+
+
+.coordinateChip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.masterLocation {
+  display: inline-grid;
+  gap: 5px;
+  margin: 2px 0 18px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.evidenceMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.evidenceMetaRow .evidenceMeta {
+  margin: 0;
+}

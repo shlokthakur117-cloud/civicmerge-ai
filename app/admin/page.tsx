@@ -24,6 +24,8 @@ type Evidence = {
   issue_id: string;
   description: string;
   image_url: string;
+  latitude: number;
+  longitude: number;
   created_at: string;
 };
 
@@ -51,7 +53,7 @@ export default async function AdminPage() {
           .limit(100),
         supabase
           .from("complaints")
-          .select("id,issue_id,description,image_url,created_at")
+          .select("id,issue_id,description,image_url,latitude,longitude,created_at")
           .not("image_url", "is", null)
           .order("created_at", { ascending: false })
           .limit(12),
@@ -159,6 +161,9 @@ export default async function AdminPage() {
                   <span className="muted">
                     {issue.report_count} reports • {label(issue.department)}
                   </span>
+                  <span className="coordinateChip">
+                    {issue.latitude.toFixed(5)}, {issue.longitude.toFixed(5)}
+                  </span>
                   <Link className="button secondary" href={"/issues/" + issue.id}>
                     View & manage
                   </Link>
@@ -240,6 +245,9 @@ export default async function AdminPage() {
                 </Link>
                 <div className="evidenceTileBody">
                   <strong>{item.description}</strong>
+                  <span className="coordinateChip">
+                    {Number(item.latitude).toFixed(5)}, {Number(item.longitude).toFixed(5)}
+                  </span>
                   <Link className="button secondary evidenceButton" href={"/issues/" + item.issue_id}>
                     View complaint evidence
                   </Link>
@@ -289,6 +297,7 @@ export default async function AdminPage() {
                 <tr>
                   <th>Issue</th>
                   <th>Photo</th>
+                  <th>Coordinates</th>
                   <th>Reports</th>
                   <th>Priority</th>
                   <th>Workflow</th>
@@ -319,6 +328,11 @@ export default async function AdminPage() {
                         ) : (
                           <span className="muted">No photo</span>
                         )}
+                      </td>
+                      <td>
+                        <span className="coordinateChip">
+                          {issue.latitude.toFixed(5)}, {issue.longitude.toFixed(5)}
+                        </span>
                       </td>
                       <td>{issue.report_count}</td>
                       <td>
