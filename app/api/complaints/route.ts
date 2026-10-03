@@ -351,7 +351,7 @@ export async function POST(request: Request) {
         issueId: best.id,
         matchedTitle: best.title,
         matchedCategory: best.category,
-        matchedStatus: "open",
+        matchedStatus: best.status,
         matchedLocation: best.location_label ?? null,
       });
     }
