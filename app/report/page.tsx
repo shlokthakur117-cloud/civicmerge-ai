@@ -5,7 +5,7 @@ import Link from "next/link";
 import { civicCategories, civicCategoryLabel } from "@/lib/categories";
 
 type ApiResult = {
-  action?: "merged" | "created" | "possible_duplicate";
+  action?: "merged" | "created" | "reopened" | "possible_duplicate";
   message: string;
   score?: number;
   distanceMeters?: number;

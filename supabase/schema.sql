@@ -119,7 +119,6 @@ as $$
       ) as computed_distance_m
     from public.issues i
     where i.embedding is not null
-      and i.status <> 'resolved'
       and i.source = 'live'
   )
   select
