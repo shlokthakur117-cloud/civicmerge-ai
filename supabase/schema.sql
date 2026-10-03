@@ -95,6 +95,7 @@ returns table (
   location_label text,
   report_count integer,
   priority_score integer,
+  status text,
   created_at timestamptz,
   similarity double precision,
   distance_m double precision
@@ -130,6 +131,7 @@ as $$
     c.location_label,
     c.report_count,
     c.priority_score,
+    c.status,
     c.created_at,
     1 - (c.embedding <=> query_embedding) as similarity,
     c.computed_distance_m as distance_m
