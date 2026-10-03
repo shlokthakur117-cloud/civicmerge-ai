@@ -260,7 +260,12 @@ export async function POST(request: Request) {
         Number(issue.longitude),
       );
 
-      if (distance > 300 || issue.status === "resolved" || issue.source !== "live") {
+      if (
+        distance > 300 ||
+        issue.status === "resolved" ||
+        issue.source !== "live" ||
+        issue.category !== body.category
+      ) {
         return NextResponse.json(
           { message: "That master issue is no longer eligible for merging." },
           { status: 409 },
@@ -292,6 +297,7 @@ export async function POST(request: Request) {
       query_embedding: embedding,
       query_latitude: body.latitude,
       query_longitude: body.longitude,
+      query_category: body.category,
       match_count: 10,
       max_distance_m: 300,
     });
@@ -322,11 +328,7 @@ export async function POST(request: Request) {
 
     const best = scored[0];
 
-    if (
-      best &&
-      best.score >= 0.85 &&
-      best.category === body.category
-    ) {
+    if (best && best.score >= 0.85) {
       const merged = await mergeComplaint(
         supabase,
         best,
