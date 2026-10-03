@@ -322,7 +322,11 @@ export async function POST(request: Request) {
 
     const best = scored[0];
 
-    if (best && best.score >= 0.85) {
+    if (
+      best &&
+      best.score >= 0.85 &&
+      best.category === body.category
+    ) {
       const merged = await mergeComplaint(
         supabase,
         best,
