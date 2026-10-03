@@ -205,7 +205,6 @@ export default function ReportPage() {
                 <strong>{result.message}</strong>
               </div>
             </div>
-            <strong>{result.message}</strong>
 
             {(typeof result.score === "number" || typeof result.distanceMeters === "number") && (
               <div className="resultMetrics">
