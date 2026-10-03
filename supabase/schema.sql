@@ -83,6 +83,7 @@ create or replace function public.match_issues(
   query_embedding extensions.vector(384),
   query_latitude double precision,
   query_longitude double precision,
+  query_category text,
   match_count integer default 10,
   max_distance_m double precision default 300
 )
@@ -121,6 +122,7 @@ as $$
     where i.embedding is not null
       and i.status <> 'resolved'
       and i.source = 'live'
+      and i.category = query_category
   )
   select
     c.id,
@@ -145,6 +147,7 @@ revoke all on function public.match_issues(
   extensions.vector,
   double precision,
   double precision,
+  text,
   integer,
   double precision
 ) from public, anon, authenticated;
@@ -153,6 +156,7 @@ grant execute on function public.match_issues(
   extensions.vector,
   double precision,
   double precision,
+  text,
   integer,
   double precision
 ) to service_role;
