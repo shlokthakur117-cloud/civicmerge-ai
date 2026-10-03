@@ -36,7 +36,9 @@ type Evidence = {
 };
 
 function label(value: string) {
-  return value.replaceAll("_", " ").replace(/w/g, (letter) => letter.toUpperCase());
+  return value
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function barWidth(value: number, max: number) {
@@ -132,8 +134,11 @@ export default async function AdminPage() {
 
   return (
     <main>
-      <nav className="nav">
-        <Link className="brand" href="/">CivicMerge AI</Link>
+      <nav className="nav glassNav">
+        <Link className="brand" href="/">
+          <span className="brandMark">CM</span>
+          <span>CivicMerge AI</span>
+        </Link>
         <div className="actions">
           <span className="adminIdentity">{session.email}</span>
           <Link className="button secondary" href="/admin/admins">
@@ -145,18 +150,69 @@ export default async function AdminPage() {
         </div>
       </nav>
 
-      <div className="eyebrow">Municipal command center</div>
-      <h2>Live master issues</h2>
-      <p className="muted">
-        Duplicate reports become evidence instead of separate tickets.
-      </p>
-
-      <section className="dashboardGrid">
-        <div className="card"><div className="metric">{issues.length}</div><div className="muted">Unique issues</div></div>
-        <div className="card"><div className="metric">{totalReports}</div><div className="muted">Citizen reports</div></div>
-        <div className="card"><div className="metric">{duplicatesAvoided}</div><div className="muted">Duplicate tickets prevented</div></div>
-        <div className="card"><div className="metric">{duplicateReduction}%</div><div className="muted">Ticket reduction</div></div>
+      <section className="commandHeader">
+        <div>
+          <div className="eyebrow">Municipal command center</div>
+          <h1 className="pageTitle">Live civic operations</h1>
+          <p className="lead compactLead">
+            One operational view for duplicate fusion, prioritization, assignment, evidence, and resolution.
+          </p>
+        </div>
+        <div className="operationsPill">
+          <span className="statusDot" />
+          Live operations
+        </div>
       </section>
+
+      <section className="dashboardGrid metricDashboard">
+        <div className="card metricCard">
+          <span className="metricLabel">Master issues</span>
+          <div className="metric">{issues.length}</div>
+          <span className="metricFoot">Unique operational tickets</span>
+        </div>
+        <div className="card metricCard">
+          <span className="metricLabel">Citizen reports</span>
+          <div className="metric">{totalReports}</div>
+          <span className="metricFoot">Evidence received</span>
+        </div>
+        <div className="card metricCard metricAccent">
+          <span className="metricLabel">Duplicates prevented</span>
+          <div className="metric">{duplicatesAvoided}</div>
+          <span className="metricFoot">Reports fused into masters</span>
+        </div>
+        <div className="card metricCard metricSuccess">
+          <span className="metricLabel">Ticket reduction</span>
+          <div className="metric">{duplicateReduction}%</div>
+          <span className="metricFoot">Administrative load avoided</span>
+        </div>
+      </section>
+
+      <section className="card aiWorkflowCard">
+        <div className="sectionHeader">
+          <div>
+            <div className="eyebrow">Decision pipeline</div>
+            <h2>How each citizen report is processed</h2>
+          </div>
+          <span className="muted">Automatic where safe • Human review when uncertain</span>
+        </div>
+        <div className="workflowStrip compactWorkflow">
+          <div className="workflowStep"><span>01</span><strong>Category</strong><small>Hard gate</small></div>
+          <div className="workflowArrow">→</div>
+          <div className="workflowStep"><span>02</span><strong>Location</strong><small>≤ 300 m</small></div>
+          <div className="workflowArrow">→</div>
+          <div className="workflowStep"><span>03</span><strong>Semantic AI</strong><small>Meaning match</small></div>
+          <div className="workflowArrow">→</div>
+          <div className="workflowStep"><span>04</span><strong>Decision</strong><small>Merge / review / create</small></div>
+        </div>
+      </section>
+
+      <div className="sectionTitleRow">
+        <div>
+          <div className="eyebrow">Priority spotlight</div>
+          <h2>Issues needing attention</h2>
+        </div>
+        <span className="muted">{highPriority} high-priority issue{highPriority === 1 ? "" : "s"}</span>
+      </div>
 
       {topIssues.length > 0 && (
         <section className="issueCardGrid">
@@ -196,6 +252,13 @@ export default async function AdminPage() {
           })}
         </section>
       )}
+
+      <div className="sectionTitleRow analyticsTitle">
+        <div>
+          <div className="eyebrow">Operational intelligence</div>
+          <h2>City-level analytics</h2>
+        </div>
+      </div>
 
       <section className="analyticsGrid">
         <div className="card">
@@ -291,10 +354,10 @@ export default async function AdminPage() {
             <h2>Issue map</h2>
           </div>
           <div className="mapLegend">
-            <span>Open</span>
-            <span>Assigned</span>
-            <span>In Progress</span>
-            <span>Resolved</span>
+            <span><i className="legendDot openDot" />Open</span>
+            <span><i className="legendDot assignedDot" />Assigned</span>
+            <span><i className="legendDot progressDot" />In Progress</span>
+            <span><i className="legendDot resolvedDot" />Resolved</span>
           </div>
         </div>
 

@@ -60,8 +60,11 @@ export default async function TrackingResultPage({
   if (!issue) {
     return (
       <main>
-        <nav className="nav">
-          <Link className="brand" href="/">CivicMerge AI</Link>
+        <nav className="nav glassNav">
+          <Link className="brand" href="/">
+            <span className="brandMark">CM</span>
+            <span>CivicMerge AI</span>
+          </Link>
           <Link className="button secondary" href="/track">
             Back to tracking
           </Link>
@@ -87,8 +90,11 @@ export default async function TrackingResultPage({
 
   return (
     <main>
-      <nav className="nav">
-        <Link className="brand" href="/">CivicMerge AI</Link>
+      <nav className="nav glassNav">
+        <Link className="brand" href="/">
+          <span className="brandMark">CM</span>
+          <span>CivicMerge AI</span>
+        </Link>
         <div className="actions">
           <Link className="button secondary" href="/report">
             Report issue
@@ -99,10 +105,22 @@ export default async function TrackingResultPage({
         </div>
       </nav>
 
-      <section className="card trackingResultCard">
-        <div className="sectionHeader">
+      <section className="trackingResultShell">
+        <div className="trackingTopBar">
           <div>
             <div className="eyebrow">Citizen complaint tracking</div>
+            <h1 className="pageTitle">Complaint status</h1>
+          </div>
+          <div className="pageHeaderBadge">
+            <span className="statusDot" />
+            Live master issue
+          </div>
+        </div>
+
+        <div className="card trackingResultCard">
+        <div className="sectionHeader">
+          <div className="trackingIssueHeading">
+            <span className="trackingIssueLabel">Master issue</span>
             <h2>{issue.title}</h2>
             <div className="trackingCode">{issue.id}</div>
           </div>
@@ -118,6 +136,14 @@ export default async function TrackingResultPage({
         </div>
 
         <TrackActions trackingId={issue.id} />
+
+        <div className="trackingSectionHeader">
+          <div>
+            <span className="eyebrow">Workflow progress</span>
+            <strong>{label(issue.status)}</strong>
+          </div>
+          <span className="muted">Updates from the municipal command center</span>
+        </div>
 
         <div className="trackingProgress">
           {workflow.map((step, index) => {
@@ -141,6 +167,13 @@ export default async function TrackingResultPage({
               </div>
             );
           })}
+        </div>
+
+        <div className="trackingSectionHeader">
+          <div>
+            <span className="eyebrow">Issue summary</span>
+            <strong>Current operational details</strong>
+          </div>
         </div>
 
         <div className="trackingInfoGrid">
@@ -189,6 +222,7 @@ export default async function TrackingResultPage({
               {formatDate(latestUpdate?.created_at ?? issue.updated_at)}
             </span>
           </div>
+        </div>
         </div>
       </section>
     </main>

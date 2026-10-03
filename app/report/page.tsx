@@ -86,22 +86,42 @@ export default function ReportPage() {
 
   return (
     <main>
-      <nav className="nav">
-        <Link className="brand" href="/">CivicMerge AI</Link>
+      <nav className="nav glassNav">
+        <Link className="brand" href="/">
+          <span className="brandMark">CM</span>
+          <span>CivicMerge AI</span>
+        </Link>
         <div className="actions">
           <Link className="button secondary" href="/track">Track complaint</Link>
           <Link className="button secondary" href="/admin">Admin dashboard</Link>
         </div>
       </nav>
 
-      <section className="card">
-        <div className="eyebrow">Citizen reporting</div>
-        <h2>Report a civic issue</h2>
-        <p className="muted">
-          Your report is checked against nearby master issues before a new ticket is created.
-        </p>
+      <header className="pageHeader">
+        <div>
+          <div className="eyebrow">Citizen reporting</div>
+          <h1 className="pageTitle">Report a civic issue</h1>
+          <p className="lead compactLead">
+            Send one clear report. CivicMerge AI checks nearby master issues before creating another ticket.
+          </p>
+        </div>
+        <div className="pageHeaderBadge">
+          <span className="statusDot" />
+          AI duplicate check enabled
+        </div>
+      </header>
 
-        <form ref={formRef} onSubmit={submit}>
+      <div className="reportLayout">
+        <section className="card reportCard">
+          <div className="formSectionTitle">
+            <span>01</span>
+            <div>
+              <strong>Issue details</strong>
+              <small>Category, description and evidence</small>
+            </div>
+          </div>
+
+          <form ref={formRef} onSubmit={submit}>
           <label>
             Category
             <select name="category" required>
@@ -131,6 +151,14 @@ export default function ReportPage() {
             />
           </label>
 
+          <div className="formSectionTitle locationSectionTitle">
+            <span>02</span>
+            <div>
+              <strong>Issue location</strong>
+              <small>Used for 300 m geographic duplicate validation</small>
+            </div>
+          </div>
+
           <div className="grid compactGrid">
             <label>
               Latitude
@@ -157,21 +185,42 @@ export default function ReportPage() {
             </div>
           </div>
 
-          <button className="button" disabled={loading}>
+          <button className="button submitButton" disabled={loading}>
+            {loading && <span className="buttonSpinner" />}
             {loading ? "Checking nearby issues..." : "Submit complaint"}
           </button>
         </form>
 
         {result && (
-          <div className="result">
-            <strong>{result.message}</strong>
+          <div className={"result resultPolished " + (result.action ? "result-" + result.action : "")}>
+            <div className="resultHeadline">
+              <span className="resultIcon">
+                {result.action === "merged" ? "✓" :
+                 result.action === "reopened" ? "↻" :
+                 result.action === "possible_duplicate" ? "?" :
+                 result.action === "created" ? "+" : "!"}
+              </span>
+              <div>
+                <span className="eyebrow">AI decision</span>
+                <strong>{result.message}</strong>
+              </div>
+            </div>
 
-            {typeof result.score === "number" && (
-              <p>Duplicate confidence: {Math.round(result.score * 100)}%</p>
-            )}
-
-            {typeof result.distanceMeters === "number" && (
-              <p>Distance from matched issue: {result.distanceMeters} m</p>
+            {(typeof result.score === "number" || typeof result.distanceMeters === "number") && (
+              <div className="resultMetrics">
+                {typeof result.score === "number" && (
+                  <div>
+                    <span>Duplicate confidence</span>
+                    <strong>{Math.round(result.score * 100)}%</strong>
+                  </div>
+                )}
+                {typeof result.distanceMeters === "number" && (
+                  <div>
+                    <span>Distance</span>
+                    <strong>{result.distanceMeters} m</strong>
+                  </div>
+                )}
+              </div>
             )}
 
             {result.action === "possible_duplicate" && result.issueId && (
@@ -242,7 +291,42 @@ export default function ReportPage() {
             )}
           </div>
         )}
-      </section>
+        </section>
+
+        <aside className="reportAside">
+          <div className="card aiCheckCard">
+            <div className="eyebrow">How CivicMerge checks</div>
+            <h2>Before creating a new ticket</h2>
+
+            <div className="checkList">
+              <div className="checkItem">
+                <span>1</span>
+                <div><strong>Category gate</strong><small>Only the same civic issue category is considered.</small></div>
+              </div>
+              <div className="checkItem">
+                <span>2</span>
+                <div><strong>300 m location filter</strong><small>Far-away issues are rejected before scoring.</small></div>
+              </div>
+              <div className="checkItem">
+                <span>3</span>
+                <div><strong>Semantic AI match</strong><small>Different wording can still describe the same real-world problem.</small></div>
+              </div>
+              <div className="checkItem">
+                <span>4</span>
+                <div><strong>Safe decision</strong><small>High confidence merges; uncertain cases stay in review.</small></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card privacyCard">
+            <strong>Citizen-first workflow</strong>
+            <p className="muted">
+              After submission you receive a tracking ID that follows the master issue through assignment and resolution.
+            </p>
+            <Link className="textLink" href="/track">Track an existing complaint →</Link>
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }
