@@ -5,7 +5,6 @@ import { priorityBand } from "@/lib/priority";
 import { civicCategoryLabel } from "@/lib/categories";
 import { getAdminSession, hasAnyAdmins } from "@/lib/admin-auth";
 import AdminLogout from "./AdminLogout";
-import DemoControls from "./DemoControls";
 import IssueActions from "./IssueActions";
 import IssueMap from "./IssueMap";
 
@@ -144,7 +143,6 @@ export default async function AdminPage() {
           <Link className="button secondary" href="/admin/admins">
             Manage admins
           </Link>
-          <DemoControls />
           <Link className="button" href="/report">Report issue</Link>
           <AdminLogout />
         </div>
@@ -364,7 +362,7 @@ export default async function AdminPage() {
         {issues.length > 0 ? (
           <IssueMap issues={issues} />
         ) : (
-          <div className="emptyState">No live issues yet. Load demo data or submit a complaint.</div>
+          <div className="emptyState">No live issues yet. Submit a complaint to populate the map.</div>
         )}
       </section>
 
