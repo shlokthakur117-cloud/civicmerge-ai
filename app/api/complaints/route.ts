@@ -124,6 +124,45 @@ async function mergeComplaint(
   };
 }
 
+async function reopenResolvedIssue(
+  supabase: any,
+  issue: IssueForMerge,
+  body: ComplaintInput,
+  image: File | null,
+  similarityScore: number,
+  locationLabel: string | null,
+) {
+  const merged = await mergeComplaint(
+    supabase,
+    issue,
+    body,
+    image,
+    similarityScore,
+    locationLabel,
+  );
+
+  const { error: reopenError } = await supabase
+    .from("issues")
+    .update({
+      status: "open",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", issue.id);
+
+  if (reopenError) throw reopenError;
+
+  const { error: historyError } = await supabase.from("issue_updates").insert({
+    issue_id: issue.id,
+    status: "open",
+    message:
+      "Recurring complaint detected. This resolved issue was automatically reopened after a high-confidence matching citizen report.",
+  });
+
+  if (historyError) throw historyError;
+
+  return merged;
+}
+
 async function createMasterIssue(
   supabase: any,
   body: ComplaintInput,
@@ -297,7 +336,7 @@ export async function POST(request: Request) {
       query_embedding: embedding,
       query_latitude: body.latitude,
       query_longitude: body.longitude,
-      match_count: 10,
+      match_count: 50,
       max_distance_m: 300,
     });
 
@@ -328,39 +367,69 @@ export async function POST(request: Request) {
       })
       .sort((a: any, b: any) => b.score - a.score);
 
-    const best = scored[0];
+    const activeCandidates = scored.filter(
+      (candidate: any) => candidate.status !== "resolved",
+    );
+    const resolvedCandidates = scored.filter(
+      (candidate: any) => candidate.status === "resolved",
+    );
 
-    if (best && best.score >= 0.85) {
+    const bestActive = activeCandidates[0];
+
+    if (bestActive && bestActive.score >= 0.85) {
       const merged = await mergeComplaint(
         supabase,
-        best,
+        bestActive,
         body,
         image,
-        best.score,
+        bestActive.score,
         locationLabel,
       );
 
       return NextResponse.json({
         action: "merged",
         message: "Existing issue detected. Your report was added as supporting evidence.",
-        score: best.score,
-        distanceMeters: best.distanceMeters,
+        score: bestActive.score,
+        distanceMeters: bestActive.distanceMeters,
         issueId: merged.issueId,
         priorityScore: merged.priorityScore,
       });
     }
 
-    if (best && best.score >= 0.7) {
+    if (bestActive && bestActive.score >= 0.7) {
       return NextResponse.json({
         action: "possible_duplicate",
         message: "A nearby possible duplicate was found. Choose whether to merge or create a separate issue.",
-        score: best.score,
-        distanceMeters: best.distanceMeters,
-        issueId: best.id,
-        matchedTitle: best.title,
-        matchedCategory: best.category,
-        matchedStatus: best.status,
-        matchedLocation: best.location_label ?? null,
+        score: bestActive.score,
+        distanceMeters: bestActive.distanceMeters,
+        issueId: bestActive.id,
+        matchedTitle: bestActive.title,
+        matchedCategory: bestActive.category,
+        matchedStatus: bestActive.status,
+        matchedLocation: bestActive.location_label ?? null,
+      });
+    }
+
+    const bestResolved = resolvedCandidates[0];
+
+    if (bestResolved && bestResolved.score >= 0.85) {
+      const reopened = await reopenResolvedIssue(
+        supabase,
+        bestResolved,
+        body,
+        image,
+        bestResolved.score,
+        locationLabel,
+      );
+
+      return NextResponse.json({
+        action: "reopened",
+        message:
+          "A matching resolved issue was found. The master issue was reopened and your report was added as new evidence.",
+        score: bestResolved.score,
+        distanceMeters: bestResolved.distanceMeters,
+        issueId: reopened.issueId,
+        priorityScore: reopened.priorityScore,
       });
     }
 
