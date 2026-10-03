@@ -297,14 +297,16 @@ export async function POST(request: Request) {
       query_embedding: embedding,
       query_latitude: body.latitude,
       query_longitude: body.longitude,
-      query_category: body.category,
       match_count: 10,
       max_distance_m: 300,
     });
 
-    if (matchError) throw matchError;
+    if (matchError) {
+      throw new Error(matchError.message ?? "Duplicate matching failed.");
+    }
 
     const scored = (candidates ?? [])
+      .filter((candidate: any) => candidate.category === body.category)
       .map((candidate: any) => {
         const hybrid = calculateDuplicateScore(
           {
