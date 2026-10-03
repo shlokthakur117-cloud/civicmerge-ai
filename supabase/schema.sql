@@ -147,7 +147,7 @@ revoke all on function public.match_issues(
   double precision,
   integer,
   double precision
-) from public;
+) from public, anon, authenticated;
 
 grant execute on function public.match_issues(
   extensions.vector,
